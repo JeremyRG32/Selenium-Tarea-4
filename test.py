@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -22,6 +23,7 @@ def login(driver):
     driver.find_element(By.NAME, "password").send_keys("admin123")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
+# Test-1 para el login exitoso
 def test_login_exitoso(setup):
     driver = setup
     driver.get("https://opensource-demo.orangehrmlive.com/")
@@ -39,6 +41,7 @@ def test_login_exitoso(setup):
     assert dashboard_header.text == "Dashboard"
     driver.save_screenshot("results/login_exitoso.png")
 
+# Test-1 Error
 def test_login_incorrecto(setup):
     driver = setup
     driver.get("https://opensource-demo.orangehrmlive.com/")
@@ -57,6 +60,7 @@ def test_login_incorrecto(setup):
     assert "dashboard" not in driver.current_url.lower()
     driver.save_screenshot("results/login_incorrecto.png")
 
+# Test-2 crear empleado
 def test_agregar_empleado(setup):
     driver = setup
     login(driver)
@@ -89,6 +93,28 @@ def test_agregar_empleado(setup):
     time.sleep(2)
     driver.save_screenshot("results/employee/agregar_empleado.png")
 
+# Test-2 Error
+def test_agregar_empleado_campos_vacios(setup):
+    driver = setup
+    login(driver)
+    
+    wait = WebDriverWait(driver, 10)
+
+    pim_menu = wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "PIM")))
+    pim_menu.click()
+
+    add_button = wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Add Employee")))
+    add_button.click()
+
+    save_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']")))
+    save_button.click()
+    
+    error_messages = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".oxd-input-field-error-message")))
+    assert len(error_messages) >= 2
+    assert "Required" in error_messages[0].text
+    driver.save_screenshot("results/employee/agregar_empleado_campos_vacios.png")
+
+# Test-3 buscar empleado
 def test_buscar_empleado_existente(setup):
     driver = setup
     login(driver)
@@ -113,6 +139,7 @@ def test_buscar_empleado_existente(setup):
 
     driver.save_screenshot("results/employee/buscar_empleado_existente.png")
 
+# Test-4 editar empleado
 def test_editar_empleado(setup):
     driver = setup
     login(driver)
@@ -206,6 +233,93 @@ def test_editar_empleado(setup):
     
     driver.save_screenshot("results/employee/empleado_editar_3.png")
 
+# Test-4 Error
+def test_editar_empleado_campos_vacios(setup):
+    driver = setup
+    login(driver)
+    wait = WebDriverWait(driver, 15)
+    
+    pim_menu = wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "PIM")))
+    pim_menu.click()
+    
+    search_name_field = wait.until(
+        EC.element_to_be_clickable(
+            (By.XPATH, "//label[contains(text(),'Employee Name')]/following::input[1]")
+        )
+    )
+    search_name_field.send_keys("Jeremy Juan Reyes")
+    
+    try:
+        wait.until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, ".oxd-autocomplete-dropdown")
+            )
+        )
+        first_suggestion = wait.until(
+            EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, ".oxd-autocomplete-option span")
+            )
+        )
+        first_suggestion.click()
+    except:
+        pass
+    
+    search_button = wait.until(
+        EC.element_to_be_clickable(
+            (By.XPATH, "//button[normalize-space()='Search']")
+        )
+    )
+    search_button.click()
+    
+    wait.until(
+        EC.presence_of_element_located(
+            (By.CSS_SELECTOR, ".oxd-table-body .oxd-table-row")
+        )
+    )
+    
+    edit_button = wait.until(
+        EC.element_to_be_clickable(
+            (By.CLASS_NAME, "bi-pencil-fill")
+        )
+    )
+    edit_button.click()
+    
+    wait.until(
+        EC.presence_of_element_located((By.NAME, "middleName"))
+    )
+  
+    middle_name = driver.find_element(By.NAME, "middleName")
+    middle_name.send_keys(Keys.CONTROL + "a") 
+    middle_name.send_keys(Keys.DELETE) 
+
+    first_name = driver.find_element(By.NAME, "firstName")
+    first_name.send_keys(Keys.CONTROL + "a") 
+    first_name.send_keys(Keys.DELETE) 
+
+    last_name = driver.find_element(By.NAME, "lastName")
+    last_name.send_keys(Keys.CONTROL + "a") 
+    last_name.send_keys(Keys.DELETE) 
+
+    assert first_name.get_attribute("value") == "", "First name not cleared"
+    assert middle_name.get_attribute("value") == "", "First name not cleared"
+    assert last_name.get_attribute("value") == "", "Last name not cleared"
+    
+    save_button = wait.until(
+        EC.element_to_be_clickable(
+            (By.XPATH, "//button[normalize-space()='Save']")
+        )
+    )
+    save_button.click()
+    
+    error_messages = wait.until(
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".oxd-input-field-error-message"))
+    )
+    assert len(error_messages) >= 2
+    assert "Required" in error_messages[0].text
+    
+    driver.save_screenshot("results/employee/empleado_editar_campos_vacios.png")
+
+# Test-5 eliminar empleado
 def test_eliminar_empleado(setup):
     driver = setup
     login(driver)
